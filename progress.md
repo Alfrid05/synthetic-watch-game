@@ -7,4 +7,6 @@ Original prompt: Publish a standalone synthetic game on GitHub Pages for Apple W
 - Chromium tests passed at 198x242 and 1440x900: five rounds, positive and negative scoring, release-gated Actual, refresh deadline preservation, timeout with no attempt, saved scores, and unavailable local storage.
 - Zero external requests and browser console errors in the tested flow. UP and DOWN fit fully within the watch viewport.
 - WebKit is not installed locally; physical watchOS testing remains necessary.
-- Pending: publication and live URL verification.
+- Published to https://alfrid05.github.io/synthetic-watch-game/ with no expiry.
+- The full five-round browser test passed again against the public HTTPS URL.
+- Physical watchOS testing remains the user's next verification step. No server or PC needs to remain running for GitHub Pages.

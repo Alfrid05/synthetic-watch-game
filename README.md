@@ -2,6 +2,8 @@
 
 A standalone, browser-only prediction game for small-screen testing. All prices, releases, currencies and reactions are fictional. This is not market data or investment advice.
 
+**Play:** https://alfrid05.github.io/synthetic-watch-game/
+
 ## Play
 
 Choose **Play five rounds**, watch the three-second replay, and choose UP or DOWN within 30 seconds. The tape freezes at point 77; the fictional release is at 80. Actual stays hidden until that release is reached during the reveal. The result compares the final displayed price at point 94 with the frozen price. Higher is UP; lower or unchanged is DOWN. Correct calls earn one point. Timeouts skip the round without adding an attempt. Five rounds complete a session.
@@ -21,3 +23,5 @@ The first four rounds cover Rates, FX, Fixed Income and Energy in shuffled order
 GitHub Pages can serve the root of the `main` branch. All asset links are relative, so project-site subpaths work. There are no dependencies or build steps. For a local preview, run `python -m http.server 8767` in this folder.
 
 The compact layout targets watch-sized browser viewports, but actual watchOS browser support must be checked on a physical watch. This is not a native watchOS app.
+
+Browser checks passed at 198x242 and 1440x900 against both a local preview and the published URL. They cover five rounds, correct and incorrect scoring, release-gated Actual, refresh recovery, unscored timeouts, device scores and unavailable local storage. The tested flow makes no external requests and produces no browser console errors. WebKit and physical watchOS testing remain outstanding.
