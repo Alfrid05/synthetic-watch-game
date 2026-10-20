@@ -1,7 +1,7 @@
 Original prompt: Publish a standalone synthetic game on GitHub Pages for Apple Watch testing, with no one-hour expiry.
 
 - The original application and deployment are untouched.
-- All public game code and SVG artwork are standalone; no company files, real data, credentials or profiles are copied.
+- All public game code and SVG artwork are standalone. The approved Fenics logo is included at the user's request; no real data, credentials or profiles are copied.
 - Browser-only five-round game, 30-second decisions, release-gated Actual, final-price scoring, local refresh recovery and device scores.
 - No external network requests from the application.
 - Chromium tests passed at 198x242 and 1440x900: five rounds, positive and negative scoring, release-gated Actual, refresh deadline preservation, timeout with no attempt, saved scores, and unavailable local storage.
@@ -10,3 +10,9 @@ Original prompt: Publish a standalone synthetic game on GitHub Pages for Apple W
 - Published to https://alfrid05.github.io/synthetic-watch-game/ with no expiry.
 - The full five-round browser test passed again against the public HTTPS URL.
 - Physical watchOS testing remains the user's next verification step. No server or PC needs to remain running for GitHub Pages.
+
+## Start Page Branding
+
+- Added the unchanged approved Fenics Market Data and Analytics logo in a full-width white panel on the start page.
+- Responsive logo sizing preserves the original aspect ratio and leaves room for watch-sized controls.
+- The logo loads successfully, fills the available watch width, and keeps the Play button inside the 198x242 viewport. The complete browser regression test passed after this change.
