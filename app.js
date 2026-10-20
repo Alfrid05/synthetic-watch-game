@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const KEY = 'synthetic-move-session-v1';
-  const SCORES_KEY = 'synthetic-move-scores-v1';
+  const KEY = 'synthetic-move-session-v2';
+  const SCORES_KEY = 'synthetic-move-scores-v2';
   const $ = id => document.getElementById(id);
   const canvas = $('chart');
   const context = canvas.getContext('2d');
@@ -10,6 +10,12 @@
   let hover = null;
   let storageAvailable = true;
   const now = () => Date.now() + offset;
+
+  // Old tabs can still write v1 data; the new release never resumes it.
+  try {
+    localStorage.removeItem('synthetic-move-session-v1');
+    localStorage.removeItem('synthetic-move-scores-v1');
+  } catch { storageAvailable = false; }
 
   function read(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }

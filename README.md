@@ -18,6 +18,8 @@ The first four rounds cover Rates, FX, Fixed Income and Energy in shuffled order
 - No time-based site expiry. This is a public static demo, not an authenticated service.
 - Device scores are editable browser data, not a secure shared leaderboard.
 
+The 20 October 2026 reset release starts a new storage version and removes previous demo sessions and scores when the updated page loads. New sessions continue to survive refresh. Already-open or offline devices must reload the updated page; this static site cannot remotely erase their browser caches. Only this game's storage keys are removed.
+
 ## Hosting
 
 GitHub Pages can serve the root of the `main` branch. All asset links are relative, so project-site subpaths work. There are no dependencies or build steps. For a local preview, run `python -m http.server 8767` in this folder.

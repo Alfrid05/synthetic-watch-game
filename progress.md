@@ -16,3 +16,10 @@ Original prompt: Publish a standalone synthetic game on GitHub Pages for Apple W
 - Added the unchanged approved Fenics Market Data and Analytics logo in a full-width white panel on the start page.
 - Responsive logo sizing preserves the original aspect ratio and leaves room for watch-sized controls.
 - The logo loads successfully, fills the available watch width, and keeps the Play button inside the 198x242 viewport. The complete browser regression test passed after this change.
+
+## Device Data Reset
+
+- Introduced v2 session and score storage, removing the demo's previous v1 keys on load without clearing unrelated browser data.
+- Versioned scripts, styles and logo URLs to request fresh assets with the reset release.
+- Old open tabs cannot overwrite v2 sessions by writing their old v1 storage keys. Offline or already-open pages must load the new release to reset.
+- Browser tests passed with preloaded v1 saves: both old keys are removed, the start page and empty device scores appear, unrelated storage survives, and new v2 games resume after refresh. The five-round regression test also passed.
