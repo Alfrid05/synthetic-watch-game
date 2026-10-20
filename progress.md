@@ -23,3 +23,10 @@ Original prompt: Publish a standalone synthetic game on GitHub Pages for Apple W
 - Versioned scripts, styles and logo URLs to request fresh assets with the reset release.
 - Old open tabs cannot overwrite v2 sessions by writing their old v1 storage keys. Offline or already-open pages must load the new release to reset.
 - Browser tests passed with preloaded v1 saves: both old keys are removed, the start page and empty device scores appear, unrelated storage survives, and new v2 games resume after refresh. The five-round regression test also passed.
+
+## Three-Round Sessions
+
+- Sessions now contain three distinct asset classes and three releases. Previous five-round saves are removed as part of v3 storage migration.
+- Save the completed score automatically once after the third result, including a final unscored timeout.
+- Show the third result for three seconds, then clear the active session and return to the start. Back to start can return sooner; refresh preserves the return deadline.
+- Browser tests passed for automatic return, manual early return, a final timeout, refresh during the return countdown, single score recording, and restarting at round one. Watch-sized controls and the full scoring/reveal regression also passed.

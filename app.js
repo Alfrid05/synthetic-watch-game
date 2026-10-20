@@ -1,7 +1,9 @@
 (() => {
   'use strict';
-  const KEY = 'synthetic-move-session-v2';
-  const SCORES_KEY = 'synthetic-move-scores-v2';
+  const KEY = 'synthetic-move-session-v3';
+  const SCORES_KEY = 'synthetic-move-scores-v3';
+  const ROUND_LIMIT = 3;
+  const RETURN_HOME_MS = 3000;
   const $ = id => document.getElementById(id);
   const canvas = $('chart');
   const context = canvas.getContext('2d');
@@ -11,10 +13,12 @@
   let storageAvailable = true;
   const now = () => Date.now() + offset;
 
-  // Old tabs can still write v1 data; the new release never resumes it.
+  // Old tabs can still write previous saves; this release never resumes them.
   try {
-    localStorage.removeItem('synthetic-move-session-v1');
-    localStorage.removeItem('synthetic-move-scores-v1');
+    for (const version of [1,2]) {
+      localStorage.removeItem(`synthetic-move-session-v${version}`);
+      localStorage.removeItem(`synthetic-move-scores-v${version}`);
+    }
   } catch { storageAvailable = false; }
 
   function read(key, fallback) {
@@ -29,8 +33,8 @@
   if (!Array.isArray(scores)) scores = [];
   scores = scores.filter(x => x && Number.isFinite(x.score) && Number.isFinite(x.attempts) && Number.isFinite(x.at));
   let session = read(KEY, null);
-  if (!session || session.version !== 1 || !['home','replay','choose','reveal','result','finish','board'].includes(session.phase)
-      || !Array.isArray(session.rounds) || session.rounds.length !== 5
+  if (!session || session.version !== 1 || !['home','replay','choose','reveal','result','board'].includes(session.phase)
+      || !Array.isArray(session.rounds) || session.rounds.length !== ROUND_LIMIT
       || session.rounds.some(r => !r || !Array.isArray(r.prices) || r.prices.length !== 160 || r.prices.some(p => !Number.isFinite(p)))) session = null;
   const persist = () => { if (session) write(KEY, session); };
 
@@ -42,10 +46,9 @@
     const random = randomGenerator(seed);
     const assets = ['Rates','FX','Fixed Income','Energy'];
     for (let i = assets.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [assets[i], assets[j]] = [assets[j], assets[i]]; }
-    assets.push(assets[Math.floor(random() * 4)]);
-    const releases = ['Demo inflation report','Demo jobs report','Demo growth report','Demo supply report','Demo activity report'];
-    const currencies = ['GBP','EUR','JPY','USD','AUD'];
-    return assets.map((asset, n) => {
+    const releases = ['Demo inflation report','Demo jobs report','Demo growth report'];
+    const currencies = ['GBP','EUR','JPY'];
+    return assets.slice(0,ROUND_LIMIT).map((asset, n) => {
       const base = asset === 'FX' ? 1.25 : asset === 'Rates' ? 4 : 100;
       const amplitude = base * 0.003;
       const sign = random() < .5 ? -1 : 1;
@@ -72,6 +75,19 @@
     if (session.phase === 'reveal' && t >= session.revealAt + 7250) {
       session.phase = 'result'; persist(); announce(session.correct ? 'Correct. One point.' : 'Incorrect. No point.');
     }
+    if (session.phase === 'result' && session.index === ROUND_LIMIT-1) {
+      if (!session.saved) {
+        if (!scores.some(x => x.id === session.id)) scores.push({id:session.id, score:session.score, attempts:session.attempts, skipped:session.skipped, at:t});
+        scores.sort((a,b) => b.score-a.score || (b.attempts ? b.score/b.attempts : 0)-(a.attempts ? a.score/a.attempts : 0) || a.at-b.at);
+        scores = scores.slice(0,10); write(SCORES_KEY,scores); session.saved = true;
+        session.returnHomeAt = (session.prediction ? session.revealAt+7250 : session.chooseDeadline)+RETURN_HOME_MS;
+        persist();
+      }
+      if (t >= session.returnHomeAt) returnToStart();
+    }
+  }
+  function returnToStart() {
+    session=null; hover=null; write(KEY,null); announce('Three rounds complete. Ready for a new game.');
   }
   function predict(direction) {
     tick();
@@ -84,14 +100,8 @@
   }
   function nextRound() {
     if (session?.phase !== 'result') return;
-    if (session.index === 4) {
-      session.phase = 'finish';
-      if (!session.saved) {
-        if (!scores.some(x => x.id === session.id)) scores.push({id:session.id, score:session.score, attempts:session.attempts, skipped:session.skipped, at:now()});
-        scores.sort((a,b) => b.score-a.score || (b.attempts ? b.score/b.attempts : 0)-(a.attempts ? a.score/a.attempts : 0) || a.at-b.at);
-        scores = scores.slice(0,10); write(SCORES_KEY,scores); session.saved = true;
-      }
-    } else {
+    if (session.index === ROUND_LIMIT-1) returnToStart();
+    else {
       session.index++; session.phase='replay'; session.startedAt=now(); session.chooseDeadline=now()+33000;
       session.prediction=null; session.correct=null; session.revealAt=null;
     }
@@ -108,29 +118,24 @@
     return FINAL;
   }
   function announce(text) { $('announcement').textContent=text; }
-  function showBoard() { if (session) { session.returnPhase=session.phase;session.phase='board';persist(); } else session={version:1,phase:'board',rounds:makeRounds(),returnPhase:'home'}; render(); }
+  function showBoard() { session ||= {version:1,phase:'home',rounds:makeRounds()}; session.returnPhase=session.phase;session.phase='board';persist();render(); }
   function renderBoard() {
     $('score-list').replaceChildren();
     scores.forEach((entry, index) => {
       const item=document.createElement('li'), label=document.createElement('span'), points=document.createElement('b');
       label.textContent=`#${index+1} / ${new Date(entry.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
-      points.textContent=`${entry.score}/5`;item.append(label,points);$('score-list').append(item);
+      points.textContent=`${entry.score}/${ROUND_LIMIT}`;item.append(label,points);$('score-list').append(item);
     });
     $('no-scores').hidden=scores.length>0;
   }
   function render() {
     tick();
     const phase=session?.phase || 'home';
-    for (const screen of ['home','game','finish','board']) $(screen).hidden=screen!==(phase==='board'?'board':phase==='finish'?'finish':['replay','choose','reveal','result'].includes(phase)?'game':'home');
+    for (const screen of ['home','game','board']) $(screen).hidden=screen!==(phase==='board'?'board':['replay','choose','reveal','result'].includes(phase)?'game':'home');
     if (phase==='board') { renderBoard(); return; }
-    if (phase==='finish') {
-      $('final-score').textContent=`${session.score} / 5`;
-      $('final-detail').textContent=`${session.attempts ? Math.round(session.score/session.attempts*100) : 0}% accuracy / ${session.skipped} skipped.`;
-      return;
-    }
     if ($('game').hidden) return;
     const round=session.rounds[session.index], idx=visibleTick();
-    $('round-label').textContent=`ROUND ${session.index+1} / 5`;
+    $('round-label').textContent=`ROUND ${session.index+1} / ${ROUND_LIMIT}`;
     $('score-label').textContent=`${session.score} POINT${session.score===1?'':'S'}`;
     $('market').textContent=`${round.asset} / ${round.currency} / SYNTHETIC`;
     $('headline').textContent=round.title;
@@ -144,7 +149,11 @@
     if (phase==='result') {
       const direction=round.prices[FINAL]>round.prices[FREEZE]?'UP':'DOWN';
       $('result-text').textContent=!session.prediction?'Time expired. Unscored skip.':session.correct?`Correct! ${direction} / +1 point`:`Market moved ${direction}. +0 points`;
-      $('next').textContent=session.index===4?'See my score':'Next round';
+      $('next').textContent=session.index===ROUND_LIMIT-1?'Back to start':'Next round';
+      if (session.index===ROUND_LIMIT-1) {
+        $('status').textContent='Returning to start';
+        $('timer').textContent=`${Math.max(0,Math.ceil((session.returnHomeAt-now())/1000))}s`;
+      }
     }
     draw(idx);
   }
@@ -179,16 +188,16 @@
       context.fillStyle='#061b32';context.fillText(label,left,Math.max(9,top-6));
     }
   }
-  $('start').onclick=startGame;$('again').onclick=startGame;
+  $('start').onclick=startGame;
   $('up').onclick=()=>predict('UP');$('down').onclick=()=>predict('DOWN');$('next').onclick=nextRound;
-  $('scores').onclick=$('finish-scores').onclick=showBoard;
+  $('scores').onclick=showBoard;
   $('back').onclick=()=>{session.phase=session.returnPhase || 'home';persist();render();};
   $('clear').onclick=()=>{if(confirm('Delete scores saved on this device?')){scores=[];write(SCORES_KEY,scores);renderBoard();}};
   canvas.onpointermove=event=>{hover=event.clientX-canvas.getBoundingClientRect().left;};canvas.onpointerleave=()=>{hover=null;};
   window.onresize=render;
   window.render_game_to_text=()=>JSON.stringify({screen:$('game').hidden?(session?.phase || 'home'):'game',phase:session?.phase || 'home',round:(session?.index ?? -1)+1,score:session?.score || 0,attempts:session?.attempts || 0,skipped:session?.skipped || 0,
     visibleTick:session?visibleTick():0,freezeIdx:FREEZE,releaseIdx:RELEASE,scoringIdx:FINAL,actualVisible:session?visibleTick()>=RELEASE:false,prediction:session?.prediction || null,correct:session?.correct ?? null,synthetic:true,storageAvailable,
-    decisionDeadline:session?.chooseDeadline || null,chartCoordinates:'origin top-left; time increases right, price increases up'});
+    decisionDeadline:session?.chooseDeadline || null,totalRounds:ROUND_LIMIT,returnHomeAt:session?.returnHomeAt || null,chartCoordinates:'origin top-left; time increases right, price increases up'});
   window.advanceTime=ms=>{offset+=Math.max(0,Number(ms)||0);render();};
   function frame(){render();requestAnimationFrame(frame);}frame();
 })();
